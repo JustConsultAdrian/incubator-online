@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smart Farm Cloud</title>
+  <link rel="manifest" href="manifest.json">
+  <style>
+    /* Add your preferred CSS here. The app runs full-screen on mobile. */
+    body { font-family: system-ui; background: #0f172a; color: white; padding: 2rem; }
+    input, button { padding: 0.75rem; margin-top: 1rem; border-radius: 0.5rem; }
+    button { background: #38bdf8; border: none; font-weight: bold; cursor: pointer; }
+    #data-feed { margin-top: 2rem; border-top: 1px solid #334155; padding-top: 1rem; }
+  </style>
+</head>
+<body>
+
+  <h1>📡 Live Farm Feed</h1>
+  <p>Data syncs instantly across all devices.</p>
+
+  <input type="text" id="sensorData" placeholder="Enter temperature or note...">
+  <button id="saveBtn">Push to Cloud</button>
+
+  <div id="data-feed">
+    <!-- Live cloud data will appear here -->
+  </div>
+
+  <!-- Firebase v9 SDK (Modular) -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-app.js";
+    import { getFirestore, collection, addDoc, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-firestore.js";
+
+    // TODO: Replace with your free Firebase project keys
+    const firebaseConfig = {
+    apiKey: "AIzaSyAQt9GqYK6_DZFc1Dw0YMxhdh4JwQGa-nk",
+    authDomain: "incubator-online.firebaseapp.com",
+    databaseURL: "https://incubator-online-default-rtdb.firebaseio.com",
+    projectId: "incubator-online",
+    storageBucket: "incubator-online.firebasestorage.app",
+    messagingSenderId: "1076907542385",
+    appId: "1:1076907542385:web:86e01bed321b818145d8d0",
+    measurementId: "G-FSXZMC5STV"
+  };
+
+    // Initialize Cloud Connection
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const feedRef = collection(db, "farm_logs");
+
+    // 1. Write to the Cloud
+    document.getElementById('saveBtn').addEventListener('click', async () => {
+      const input = document.getElementById('sensorData');
+      if(input.value) {
+        await addDoc(feedRef, { note: input.value, timestamp: new Date() });
+        input.value = ''; // clear input
+      }
+    });
+
+    // 2. Listen to the Cloud in Real-Time (The "Smart" Part)
+    const q = query(feedRef, orderBy("timestamp", "desc"));
+    onSnapshot(q, (snapshot) => {
+      const feedDiv = document.getElementById('data-feed');
+      feedDiv.innerHTML = ''; // Clear old data
+      snapshot.forEach((doc) => {
+        feedDiv.innerHTML += `<p>🟢 ${doc.data().note}</p>`;
+      });
+    });
+
+    // 3. Register the Self-Updating Service Worker
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js');
+    }
+  </script>
+</body>
+</html>
